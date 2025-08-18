@@ -6,9 +6,12 @@
 -- If absent, defaults in DynamicBandages.lua are used.
 
 DynamicBandages_Config = {
-    debugLogs        = false,
-    enableSleepHook  = true,
-    requireRealSleep = true,
-    minExhaustGain   = 3,
-    wakeDebounceMs   = 1200,
+    debugLogs       = true,
+    enableSleepHook = true,
+    enableBuffs     = false,
+    scholarKey      = "scholarship",
+
+    applyOnStart    = true,
+    startRetries    = 3,
+    startRetryMs    = 500,
 }

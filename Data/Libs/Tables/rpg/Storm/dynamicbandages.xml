@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE storm SYSTEM "..\storm.dtd">
+<storm>
+	<customSelectors>
+	</customSelectors>
+	<rules>
+		<rule name="init_dynamicbandages">
+			<selectors>
+				<hasName name="player_henry"/>
+			</selectors>
+			<operations>
+				<setAttribute stat="fae" value="0.4" />
+			</operations>
+		</rule>
+    </rules>
+</storm>

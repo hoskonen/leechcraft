@@ -1,188 +1,142 @@
--- ================================
--- File: Scripts/DynamicBandages/DynamicBandages.lua
--- ================================
-
 DynamicBandages = DynamicBandages or {}
 
--- --------------------------------
--- Config (defaults) — overridden by DynamicBandagesConfig.lua if present
--- --------------------------------
-DynamicBandages.config = {
-    debugLogs        = true,
-    enableSleepHook  = true, -- master switch for SkipTime-based updates
-    requireRealSleep = true, -- gate on actual exhaust gain
-    minExhaustGain   = 3,    -- minimum exhaust delta to count as sleep
-    wakeDebounceMs   = 1200, -- avoid duplicate OnHide bursts
+--Minimal config
+DynamicBandages.config = DynamicBandages.config or {
+    debugLogs       = true,
+    enableSleepHook = true,
+    enableBuffs     = false,
+    scholarKey      = "scholarship", -- single source of truth
+    applyOnStart    = true,          -- ⬅ run once at game start
+    startRetries    = 3,             -- ⬅ try a few times (soul might not be ready)
+    startRetryMs    = 500,           -- ⬅ delay between retries
 }
 
--- --------------------------------
--- Runtime state
--- --------------------------------
-DynamicBandages._sleepSession = { startExhaust = nil }
-DynamicBandages._skipListenerRegistered = false
-DynamicBandages._wakeGuard = { lastRunMs = 0 }
+-- Scholarship → FAE tier mapping (names must match your DB)
+local DB_TIERS = {
+    { min = 1,  max = 5,  buff = "scholarship_bandaging_1" },
+    { min = 6,  max = 11, buff = "scholarship_bandaging_2" },
+    { min = 12, max = 17, buff = "scholarship_bandaging_3" },
+    { min = 18, max = 23, buff = "scholarship_bandaging_4" },
+    { min = 24, max = 30, buff = "scholarship_bandaging_5" },
+}
 
--- --------------------------------
--- Utilities
--- --------------------------------
+local function ApplyOnceWithRetry(triesLeft)
+    triesLeft = triesLeft or (DynamicBandages.config.startRetries or 0)
+    local ok = pcall(DynamicBandages.ApplyOnWake)
+    if ok then return end
+    if triesLeft <= 0 then return end
+    Script.SetTimer(DynamicBandages.config.startRetryMs or 500, function()
+        ApplyOnceWithRetry(triesLeft - 1)
+    end)
+end
+
+local function clearTierBuffs(soul)
+    for _, t in ipairs(DB_TIERS) do
+        if soul:HasBuff(t.buff) then soul:RemoveBuff(t.buff) end
+    end
+end
+
+local function pickTier(s)
+    if type(s) ~= "number" then return DB_TIERS[1].buff end
+    local v = math.max(1, math.min(30, s))
+    for _, t in ipairs(DB_TIERS) do
+        if v >= t.min and v <= t.max then return t.buff end
+    end
+    return DB_TIERS[#DB_TIERS].buff
+end
+
 local function Log(msg)
-    if DynamicBandages.config and DynamicBandages.config.debugLogs then
+    if DynamicBandages.config.debugLogs then
         System.LogAlways("[DynamicBandages] " .. tostring(msg))
     end
 end
 
-local function Info(msg)
-    System.LogAlways("[DynamicBandages] " .. tostring(msg))
-end
-
-local function nowMillis()
-    if System.GetCurrTime then
-        local ok, t = pcall(System.GetCurrTime)
-        if ok and type(t) == "number" then return math.floor(t * 1000) end
-    end
-    if System.GetFrameID then
-        local ok, f = pcall(System.GetFrameID)
-        if ok and type(f) == "number" then return f * 16 end
-    end
-    return 0
-end
-
-local function shouldRunOnce()
-    local t = nowMillis()
-    local last = DynamicBandages._wakeGuard.lastRunMs or 0
-    if (t - last) < (DynamicBandages.config.wakeDebounceMs or 1200) then
-        return false
-    end
-    DynamicBandages._wakeGuard.lastRunMs = t
-    return true
-end
-
-local function getPlayer()
-    return System.GetEntityByName("Henry") or System.GetEntityByName("dude")
-end
-
--- Exhaust is a STATE (0..100), not the stat. Keep using soul:GetState("exhaust")
-local function getExhaust(player)
-    local soul = player and player.soul
-    if soul and soul.GetState then
-        local ok, val = pcall(function() return soul:GetState("exhaust") end)
-        if ok and type(val) == "number" then return val end
+local function getPlayerSafe()
+    -- Preferred: by name (works across builds)
+    local p = System.GetEntityByName and (System.GetEntityByName("Henry") or System.GetEntityByName("dude")) or nil
+    if p then return p end
+    -- Fallback: by class (guarded)
+    if System.GetEntityByClass then
+        local ok, res = pcall(System.GetEntityByClass, "Player")
+        if ok then return res end
     end
     return nil
 end
 
--- --------------------------------
--- Config override (safe load)
--- --------------------------------
-local ok, err = pcall(function()
-    Script.ReloadScript("Scripts/DynamicBandages/DynamicBandagesConfig.lua")
-end)
-
-if not ok then
-    Info("⚠ Failed to load DynamicBandagesConfig.lua: " .. tostring(err))
-elseif DynamicBandages_Config then
-    for k, v in pairs(DynamicBandages_Config) do
-        DynamicBandages.config[k] = v
-    end
-    Info("Loaded config from DynamicBandagesConfig.lua")
-else
-    Info("DynamicBandagesConfig.lua not found or missing DynamicBandages_Config — using defaults")
+local function GetScholarship(player)
+    local soul = player and player.soul
+    if not soul or type(soul.GetSkillLevel) ~= "function" then return nil end
+    local key = (DynamicBandages.config and DynamicBandages.config.scholarKey) or "scholarship"
+    local ok, val = pcall(function() return soul:GetSkillLevel(key) end)
+    return (ok and type(val) == "number") and val or nil
 end
 
-function DynamicBandages.DumpConfig()
-    Log("Active config:")
-    for k, v in pairs(DynamicBandages.config) do
-        Log(string.format("  %s = %s", k, tostring(v)))
-    end
-end
-
--- --------------------------------
--- Public: called when SkipTime finishes (after confirmed sleep)
--- --------------------------------
+--Wake handler (no buffs yet; just log scholarship) ---
 function DynamicBandages.ApplyOnWake()
-    -- ⚠ Placeholder: this is where we’ll compute Scholarship → pick buff tier → apply buff
-    -- Keep minimal logging so we can verify the hook without gameplay side-effects.
-    Log("ApplyOnWake(): stub — ready to plug Scholarship → bandage-buff logic")
+    System.LogAlways("[DynamicBandages] ApplyOnWake() — enter")
+    local ok, err = pcall(function()
+        local player = getPlayerSafe()
+        if not player or not player.soul then
+            System.LogAlways("[DynamicBandages] ApplyOnWake: no player/soul")
+            return
+        end
+        local soul = player.soul
+
+        -- 1) log Scholarship using the single configured key
+        local s = GetScholarship(player)
+        System.LogAlways(string.format("[DynamicBandages] Wake: Scholarship=%s (key=%s)",
+            tostring(s), tostring(DynamicBandages.config.scholarKey)))
+
+        -- 2) optionally apply tier (kept behind flag)
+        if DynamicBandages.config.enableBuffs then
+            local chosen = pickTier(s or 1)
+            clearTierBuffs(soul)
+            soul:AddBuff(chosen)
+            System.LogAlways("[DynamicBandages] Applied buff: " .. chosen)
+        end
+    end)
+    if not ok then
+        System.LogAlways("[DynamicBandages] ApplyOnWake() error: " .. tostring(err))
+    end
+    System.LogAlways("[DynamicBandages] ApplyOnWake() — exit")
 end
 
--- --------------------------------
--- SkipTime / sleep UI bridge
--- --------------------------------
+--SkipTime / sleep UI bridge (clean: just call ApplyOnWake on hide) ---
 function DynamicBandages:onSkipTimeEvent(elementName, instanceId, eventName, args)
     if not DynamicBandages.config.enableSleepHook then return end
 
-    if eventName == "OnSetFaderState" and args and args[1] == "sleep" then
-        Log("Sleep start detected (OnSetFaderState: sleep)")
-        if DynamicBandages.config.requireRealSleep then
-            local p = getPlayer()
-            DynamicBandages._sleepSession.startExhaust = getExhaust(p)
-            Log("Captured start exhaust: " .. tostring(DynamicBandages._sleepSession.startExhaust))
-        end
-        return
-    end
-
     if eventName == "OnHide" then
-        if not shouldRunOnce() then
-            Log("Debounced duplicate wake trigger")
-            return
-        end
-
-        local okToRun = true
-        if DynamicBandages.config.requireRealSleep then
-            local p        = getPlayer()
-            local startExh = DynamicBandages._sleepSession.startExhaust
-            local endExh   = getExhaust(p)
-            local gain     = 0
-
-            if type(startExh) == "number" and type(endExh) == "number" then
-                gain = endExh - startExh
-                if gain < 0 then gain = 0 end
-            else
-                okToRun = false
-            end
-
-            if okToRun then
-                okToRun = gain >= (DynamicBandages.config.minExhaustGain or 3)
-            end
-
-            Log(string.format("Sleep gain check: start=%s end=%s Δ=%.1f → %s",
-                tostring(startExh), tostring(endExh), gain, okToRun and "ALLOW" or "BLOCK"))
-
-            -- reset session either way
-            DynamicBandages._sleepSession.startExhaust = nil
-        end
-
-        if not okToRun then
-            Log("Sleep canceled/too short — skipping ApplyOnWake")
-            return
-        end
-
-        -- Small delay lets stats settle after SkipTime fade-out
-        Script.SetTimer(500, function()
-            DynamicBandages.ApplyOnWake()
-        end)
+        Script.SetTimer(400, function() DynamicBandages.ApplyOnWake() end)
     end
 end
 
--- --------------------------------
--- Initialize once per session
--- --------------------------------
+--Init (register SkipTime listener once) ---
 function DynamicBandages.Initialize(fullInit)
-    if fullInit and DynamicBandages._initialized then
-        return
-    end
-    if fullInit then
-        DynamicBandages._initialized = true
-        DynamicBandages.DumpConfig()
-    end
-
-    if DynamicBandages.config.enableSleepHook and not DynamicBandages._skipListenerRegistered then
-        if UIAction and UIAction.RegisterElementListener then
-            UIAction.RegisterElementListener(DynamicBandages, "SkipTime", -1, "", "onSkipTimeEvent")
-            DynamicBandages._skipListenerRegistered = true
-            Log("Registered SkipTime listener (sleep/wake)")
-        else
-            Info("⚠ UIAction.RegisterElementListener not available — sleep hook inactive")
-        end
+    if DynamicBandages._skipListenerRegistered then return end
+    if UIAction and UIAction.RegisterElementListener then
+        UIAction.RegisterElementListener(DynamicBandages, "SkipTime", -1, "", "onSkipTimeEvent")
+        DynamicBandages._skipListenerRegistered = true
+        Log("Registered SkipTime listener")
+    else
+        Log("UIAction not available for SkipTime registration")
     end
 end
+
+--System listeners (match your Provision Purge pattern) ---
+function DynamicBandages.OnGameplayStarted()
+    System.LogAlways("[DynamicBandages] OnGameplayStarted")
+    DynamicBandages.Initialize(true)
+
+    if DynamicBandages.config.applyOnStart then
+        -- run once now + retry a couple times while player/soul finish spawning
+        ApplyOnceWithRetry()
+    end
+end
+
+function DynamicBandages.OnSetFaderState()
+    -- keep SkipTime listener alive if UI reloads
+    DynamicBandages.Initialize(false)
+end
+
+UIAction.RegisterEventSystemListener(DynamicBandages, "System", "OnGameplayStarted", "OnGameplayStarted")
+UIAction.RegisterEventSystemListener(DynamicBandages, "System", "OnSetFaderState", "OnSetFaderState")
