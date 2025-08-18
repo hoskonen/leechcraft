@@ -1,0 +1,13 @@
+<kcd_mod>
+  <info>
+    <name>Dynamic Bandages</name>
+    <modid>dynamicbandages</modid>
+    <description>Healing with bandages scales now with scholarship</description>
+    <author>hoskope</author>
+    <version>1.1</version>
+    <created_on>2025-15-08</created_on>
+  </info>
+  <supports>
+    <kcd_version>1.*</kcd_version>
+  </supports>
+</kcd_mod>

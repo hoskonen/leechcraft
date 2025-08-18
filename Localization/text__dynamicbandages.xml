@@ -1,0 +1,65 @@
+<Table>
+    <Row>
+        <Cell>ui_purged_food_1</Cell>
+        <Cell>You cast aside some foul rations.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_food_2</Cell>
+        <Cell>Best toss away these spoiled morsels.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_food_3</Cell>
+        <Cell>No use carrying meat that stinks like this.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_food_4</Cell>
+        <Cell>You rid yourself of tainted bread and meat.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_food_5</Cell>
+        <Cell>You discard rotten food before it poisons you.</Cell>
+    </Row>
+
+    <Row>
+        <Cell>ui_purged_herbs_1</Cell>
+        <Cell>The herbs have withered — you throw them away.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_herbs_2</Cell>
+        <Cell>Dried leaves and dust, no use keeping these.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_herbs_3</Cell>
+        <Cell>These herbs lost their virtue, better cast them out.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_herbs_4</Cell>
+        <Cell>You discard herbs that turned to dust and rot.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_herbs_5</Cell>
+        <Cell>The spoiled plants are tossed aside.</Cell>
+    </Row>
+
+    <Row>
+        <Cell>ui_purged_both_1</Cell>
+        <Cell>You rid yourself of spoiled food and withered herbs.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_both_2</Cell>
+        <Cell>Rotten meat and useless herbs are cast away.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_both_3</Cell>
+        <Cell>You throw away a bundle of foul provisions.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_both_4</Cell>
+        <Cell>Stale rations and withered herbs are left behind.</Cell>
+    </Row>
+    <Row>
+        <Cell>ui_purged_both_5</Cell>
+        <Cell>You discard the spoiled provisions weighing you down.</Cell>
+    </Row>
+
+</Table> 
