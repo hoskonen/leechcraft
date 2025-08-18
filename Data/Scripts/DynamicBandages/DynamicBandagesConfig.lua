@@ -8,7 +8,7 @@
 DynamicBandages_Config = {
     debugLogs       = true,
     enableSleepHook = true,
-    enableBuffs     = false,
+    enableBuffs     = true,
     scholarKey      = "scholarship",
 
     applyOnStart    = true,
