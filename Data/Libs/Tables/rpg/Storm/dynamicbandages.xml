@@ -9,7 +9,6 @@
 				<hasName name="player_henry"/>
 			</selectors>
 			<operations>
-				<setAttribute stat="fae" value="0.4" />
 				<addPerk name="leechcraft" />
 			</operations>
 		</rule>
