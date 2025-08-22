@@ -10,7 +10,6 @@ Leechcraft_Config = {
     enableSleepHook = true,
     enableBuffs     = true,
     scholarKey      = "scholarship",
-
     applyOnStart    = true,
     startRetries    = 3,
     startRetryMs    = 500,

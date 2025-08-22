@@ -78,11 +78,35 @@ local function pickTierEntry(s)
 end
 
 -- Remove all tiers (idempotent, UUID-only)
+-- local function ClearBuffs(soul)
+--     for _, t in ipairs(LEECH.tiers) do
+--         pcall(function() soul:RemoveBuff(t.id) end)
+--     end
+-- end
+
+-- Wipe all Leechcraft-tier buffs in one go by database GUID
+-- (GUID == <database name="barbora"> in your XML)
+-- Strong cleaner: try GUID, then nuke by UUID, then by name (derived from LEECH.tiers)
 local function ClearBuffs(soul)
+    if not soul then return end
+
+    -- 1) Try DB-GUID wipe (if engine expects another GUID internally, this may no-op)
+    pcall(function() soul:RemoveAllBuffsByGuid("barbora") end)
+
+    -- 2) Remove current tiers by UUID (authoritative)
     for _, t in ipairs(LEECH.tiers) do
         pcall(function() soul:RemoveBuff(t.id) end)
     end
+
+    -- 3) Belt & suspenders: remove by NAME repeatedly (handles legacy buffs with unknown UUIDs)
+    --    (no extra table: we reuse t.name)
+    for _, t in ipairs(LEECH.tiers) do
+        for i = 1, 6 do
+            pcall(function() soul:RemoveBuff(t.name) end)
+        end
+    end
 end
+
 
 local function AddById(soul, id, label)
     local ok, err = pcall(function() return soul:AddBuff(id) end)
@@ -105,7 +129,6 @@ function Leechcraft.DebugSetTier(i)
     System.LogAlways("[Leechcraft] DebugSetTier → " .. LEECH.tiers[idx].name)
 end
 
--- unified apply (boot/wake)
 -- unified apply (boot/wake)
 function Leechcraft.Apply(stage)
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — enter")
