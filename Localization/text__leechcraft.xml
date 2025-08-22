@@ -13,4 +13,44 @@
     <Cell>perk_leechcraft_lore_desc</Cell>
     <Cell>The art of binding wounds is a discipline of book and hand alike. As you deepen your Scholarship, your bandages bite cleaner and hold truer. After a night's rest, your learning settles — your binding becomes more effective.</Cell><Cell>The art of binding wounds is a discipline of book and hand alike. As you deepen your Scholarship, your bandages bite cleaner and hold truer. After a night's rest, your learning settles — your binding becomes more effective.</Cell>
 </Row>
+<!-- Bandaging Buffs -->
+<Row>
+    <Cell>buff_scholarship_bandaging_1</Cell><Cell>Leechcraft I</Cell><Cell>Leechcraft I</Cell>
+</Row>
+<Row>
+    <Cell>buff_scholarship_bandaging_1_desc</Cell>
+    <Cell>You bind wounds with clumsy hands, the bandage often slipping or fouling. It may hold, or it may fail when most needed.</Cell><Cell>You bind wounds with clumsy hands, the bandage often slipping or fouling. It may hold, or it may fail when most needed.</Cell>
+</Row>
+
+<Row>
+    <Cell>buff_scholarship_bandaging_2</Cell><Cell>Leechcraft II</Cell><Cell>Leechcraft II</Cell>
+</Row>
+<Row>
+    <Cell>buff_scholarship_bandaging_2_desc</Cell>
+    <Cell>You recall the ways of village midwives and wise women, tying knots and laying cloth as they might, though without their certainty.</Cell><Cell>You recall the ways of village midwives and wise women, tying knots and laying cloth as they might, though without their certainty.</Cell>
+</Row>
+
+<Row>
+    <Cell>buff_scholarship_bandaging_3</Cell><Cell>Leechcraft III</Cell><Cell>Leechcraft III</Cell>
+</Row>
+<Row>
+    <Cell>buff_scholarship_bandaging_3_desc</Cell>
+    <Cell>You lay on poultices and wrappings with a steadier hand, recalling the herbs and measures of old healers who have seen many hurts.</Cell><Cell>You lay on poultices and wrappings with a steadier hand, recalling the herbs and measures of old healers who have seen many hurts.</Cell>
+</Row>
+
+<Row>
+    <Cell>buff_scholarship_bandaging_4</Cell><Cell>Leechcraft IV</Cell><Cell>Leechcraft IV</Cell>
+</Row>
+<Row>
+    <Cell>buff_scholarship_bandaging_4_desc</Cell>
+    <Cell>You bind wounds as do the surgeons who follow the banners of war, swift and sure, the cloth set tight as on a battlefield.</Cell><Cell>You bind wounds as do the surgeons who follow the banners of war, swift and sure, the cloth set tight as on a battlefield.</Cell>
+</Row>
+
+<Row>
+    <Cell>buff_scholarship_bandaging_5</Cell><Cell>Leechcraft V</Cell><Cell>Leechcraft V</Cell>
+</Row>
+<Row>
+    <Cell>buff_scholarship_bandaging_5_desc</Cell>
+    <Cell>Your hands move as though taught in the infirmary of Sasau, the bandage drawn firm and true, as if long practice had made it second nature.</Cell><Cell>Your hands move as though taught in the infirmary of Sasau, the bandage drawn firm and true, as if long practice had made it second nature.</Cell>
+</Row>
 </Table> 

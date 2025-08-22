@@ -11,6 +11,19 @@ Leechcraft.config = Leechcraft.config or {
     startRetryMs    = 500,           -- delay between retries
 }
 
+-- Load user override config (safe)
+do
+    local ok, err = pcall(function()
+        Script.ReloadScript("Scripts/Leechcraft/LeechcraftConfig.lua")
+    end)
+    if ok and Leechcraft_Config then
+        for k, v in pairs(Leechcraft_Config) do Leechcraft.config[k] = v end
+        System.LogAlways("[LeechCraft] Loaded config override from LeechcraftConfig.lua")
+    else
+        if not ok then System.LogAlways("[LeechCraft] Config override load failed: " .. tostring(err)) end
+    end
+end
+
 -- Scholarship → FAE mapping (levels, name, UUID). Tier 1 acts as the baseline.
 local LEECH = {
     tiers = {
@@ -24,8 +37,8 @@ local LEECH = {
 
 local function ApplyOnceWithRetry(triesLeft)
     triesLeft = triesLeft or (Leechcraft.config.startRetries or 0)
-    local ok = pcall(function() Leechcraft.Apply("boot") end)
-    if ok then return end
+    local ok, applied = pcall(function() return Leechcraft.Apply("boot") end)
+    if ok and applied then return end
     if triesLeft <= 0 then return end
     Script.SetTimer(Leechcraft.config.startRetryMs or 500, function()
         ApplyOnceWithRetry(triesLeft - 1)
@@ -89,17 +102,20 @@ function Leechcraft.DebugSetTier(i)
     ClearBuffs(s)
     local idx = math.max(1, math.min(#LEECH.tiers, tonumber(i) or 1))
     AddById(s, LEECH.tiers[idx].id, LEECH.tiers[idx].name)
-    System.LogAlways("[Leechcraft] DebugSetTier → " .. LEEECH.tiers[idx].name)
+    System.LogAlways("[Leechcraft] DebugSetTier → " .. LEECH.tiers[idx].name)
 end
 
 -- unified apply (boot/wake)
+-- unified apply (boot/wake)
 function Leechcraft.Apply(stage)
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — enter")
+    local applied = false
     local ok, err = pcall(function()
         local player = getPlayerSafe()
         local soul   = player and player.soul
         if not soul then
-            System.LogAlways("[LeechCraft] no soul"); return
+            System.LogAlways("[LeechCraft] no soul")
+            return -- applied=false
         end
 
         local s = GetScholarship(player)
@@ -112,11 +128,12 @@ function Leechcraft.Apply(stage)
         System.LogAlways(("[LeechCraft] enableBuffs=true, chosen=%s (lvl %d–%d)")
             :format(entry.name, entry.min, entry.max))
 
-        ClearBuffs(soul) -- remove all tiers by UUID
-        AddById(soul, entry.id, entry.name)
+        ClearBuffs(soul)
+        applied = AddById(soul, entry.id, entry.name) -- returns true/false
     end)
     if not ok then System.LogAlways("[LeechCraft] Apply error: " .. tostring(err)) end
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — exit")
+    return applied
 end
 
 -- Sleep UI bridge → apply on wake
