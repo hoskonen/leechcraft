@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="us-ascii"?>
 <database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../database.xsd">
 	<perks version="1">
-		<perk autolearnable="true" perk_id="9e1a7a33-2c4c-4701-af33-c52b2e24fdb8" perk_name="leechcraft" perk_ui_name="perk_leechcraft_name" visibility="2" icon_id="perk_leechcraft" perk_ui_desc="perk_leechcraft_desc" perk_ui_lore_desc="perk_leechcraft_lore_desc" skill_selector="26" />
+		<perk autolearnable="true" perk_id="9e1a7a33-2c4c-4701-af33-c52b2e24fdb8" perk_name="leechcraft" perk_ui_name="perk_leechcraft_name" visibility="2" icon_id="perk_leechcraft" perk_ui_desc="perk_leechcraft_desc" perk_ui_lore_desc="perk_leechcraft_lore_desc" skill_selector="26" level="1" />
 	</perks>
 </database>

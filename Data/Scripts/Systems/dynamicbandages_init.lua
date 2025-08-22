@@ -4,4 +4,4 @@ DynamicBandages = DynamicBandages or {}
 -- Bootstrap: load the main logic
 Script.ReloadScript("Scripts/DynamicBandages/DynamicBandages.lua")
 
-System.LogAlways("[DynamicBandages] init: main reloaded")
+System.LogAlways("[LeechCraft] init: main reloaded")
