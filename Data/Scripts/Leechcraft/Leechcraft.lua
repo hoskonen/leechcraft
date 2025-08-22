@@ -1,21 +1,21 @@
-DynamicBandages = DynamicBandages or {}
+Leechcraft = Leechcraft or {}
 
 -- Minimal config
-DynamicBandages.config = DynamicBandages.config or {
+Leechcraft.config = Leechcraft.config or {
     debugLogs       = true,
     enableSleepHook = true,
     enableBuffs     = true,
     scholarKey      = "scholarship", -- single source of truth
-    applyOnStart    = true,        -- run once at game start
-    startRetries    = 3,           -- try a few times (soul might not be ready)
-    startRetryMs    = 500,         -- delay between retries
+    applyOnStart    = true,          -- run once at game start
+    startRetries    = 3,             -- try a few times (soul might not be ready)
+    startRetryMs    = 500,           -- delay between retries
 }
 
 -- Scholarship → FAE mapping (levels, name, UUID). Tier 1 acts as the baseline.
 local LEECH = {
     tiers = {
-        { min = 1, max = 5, name = "scholarship_bandaging_1", id = "a8a0e967-184e-4185-b26d-63fc766e55da" },
-        { min = 6, max = 11, name = "scholarship_bandaging_2", id = "6837c164-2e18-43aa-9051-6dc582abf77a" },
+        { min = 1,  max = 5,  name = "scholarship_bandaging_1", id = "a8a0e967-184e-4185-b26d-63fc766e55da" },
+        { min = 6,  max = 11, name = "scholarship_bandaging_2", id = "6837c164-2e18-43aa-9051-6dc582abf77a" },
         { min = 12, max = 17, name = "scholarship_bandaging_3", id = "9605692c-a4b1-4089-a8fb-8f46120e1534" },
         { min = 18, max = 23, name = "scholarship_bandaging_4", id = "f42e79ba-ab3f-40ac-89f6-4db9f8a48740" },
         { min = 24, max = 30, name = "scholarship_bandaging_5", id = "196fe75b-4a59-4f54-a243-535cc0e14505" },
@@ -23,17 +23,17 @@ local LEECH = {
 }
 
 local function ApplyOnceWithRetry(triesLeft)
-    triesLeft = triesLeft or (DynamicBandages.config.startRetries or 0)
-    local ok = pcall(function() DynamicBandages.Apply("boot") end)
+    triesLeft = triesLeft or (Leechcraft.config.startRetries or 0)
+    local ok = pcall(function() Leechcraft.Apply("boot") end)
     if ok then return end
     if triesLeft <= 0 then return end
-    Script.SetTimer(DynamicBandages.config.startRetryMs or 500, function()
+    Script.SetTimer(Leechcraft.config.startRetryMs or 500, function()
         ApplyOnceWithRetry(triesLeft - 1)
     end)
 end
 
 local function Log(msg)
-    if DynamicBandages.config.debugLogs then
+    if Leechcraft.config.debugLogs then
         System.LogAlways("[LeechCraft] " .. tostring(msg))
     end
 end
@@ -51,7 +51,7 @@ end
 local function GetScholarship(player)
     local soul = player and player.soul
     if not soul or type(soul.GetSkillLevel) ~= "function" then return nil end
-    local key = (DynamicBandages.config and DynamicBandages.config.scholarKey) or "scholarship"
+    local key = (Leechcraft.config and Leechcraft.config.scholarKey) or "scholarship"
     local ok, val = pcall(function() return soul:GetSkillLevel(key) end)
     return (ok and type(val) == "number") and val or nil
 end
@@ -79,8 +79,8 @@ local function AddById(soul, id, label)
 end
 
 -- Debug: force a tier regardless of Scholarship
--- usage in console: lua DynamicBandages.DebugSetTier(2)
-function DynamicBandages.DebugSetTier(i)
+-- usage in console: lua Leechcraft.DebugSetTier(2)
+function Leechcraft.DebugSetTier(i)
     local p = System.GetEntityByName("Henry") or System.GetEntityByName("dude")
     local s = p and p.soul
     if not s then
@@ -93,7 +93,7 @@ function DynamicBandages.DebugSetTier(i)
 end
 
 -- unified apply (boot/wake)
-function DynamicBandages.Apply(stage)
+function Leechcraft.Apply(stage)
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — enter")
     local ok, err = pcall(function()
         local player = getPlayerSafe()
@@ -104,9 +104,9 @@ function DynamicBandages.Apply(stage)
 
         local s = GetScholarship(player)
         System.LogAlways(string.format("[LeechCraft] %s: Scholarship=%s (key=%s)",
-            stage or "?", tostring(s), tostring(DynamicBandages.config.scholarKey)))
+            stage or "?", tostring(s), tostring(Leechcraft.config.scholarKey)))
 
-        if not DynamicBandages.config.enableBuffs then return end
+        if not Leechcraft.config.enableBuffs then return end
 
         local entry = pickTierEntry(s or 1)
         System.LogAlways(("[LeechCraft] enableBuffs=true, chosen=%s (lvl %d–%d)")
@@ -120,19 +120,19 @@ function DynamicBandages.Apply(stage)
 end
 
 -- Sleep UI bridge → apply on wake
-function DynamicBandages:onSkipTimeEvent(_, _, eventName)
-    if not DynamicBandages.config.enableSleepHook then return end
+function Leechcraft:onSkipTimeEvent(_, _, eventName)
+    if not Leechcraft.config.enableSleepHook then return end
     if eventName == "OnHide" then
-        Script.SetTimer(400, function() DynamicBandages.Apply("wake") end)
+        Script.SetTimer(400, function() Leechcraft.Apply("wake") end)
     end
 end
 
 -- Init (register SkipTime listener once)
-function DynamicBandages.Initialize(fullInit)
-    if DynamicBandages._skipListenerRegistered then return end
+function Leechcraft.Initialize(fullInit)
+    if Leechcraft._skipListenerRegistered then return end
     if UIAction and UIAction.RegisterElementListener then
-        UIAction.RegisterElementListener(DynamicBandages, "SkipTime", -1, "", "onSkipTimeEvent")
-        DynamicBandages._skipListenerRegistered = true
+        UIAction.RegisterElementListener(Leechcraft, "SkipTime", -1, "", "onSkipTimeEvent")
+        Leechcraft._skipListenerRegistered = true
         Log("Registered SkipTime listener")
     else
         Log("UIAction not available for SkipTime registration")
@@ -140,17 +140,17 @@ function DynamicBandages.Initialize(fullInit)
 end
 
 -- System listeners
-function DynamicBandages.OnGameplayStarted()
+function Leechcraft.OnGameplayStarted()
     System.LogAlways("[LeechCraft] OnGameplayStarted")
-    DynamicBandages.Initialize(true)
-    if DynamicBandages.config.applyOnStart then
+    Leechcraft.Initialize(true)
+    if Leechcraft.config.applyOnStart then
         ApplyOnceWithRetry()
     end
 end
 
-function DynamicBandages.OnSetFaderState()
-    DynamicBandages.Initialize(false)
+function Leechcraft.OnSetFaderState()
+    Leechcraft.Initialize(false)
 end
 
-UIAction.RegisterEventSystemListener(DynamicBandages, "System", "OnGameplayStarted", "OnGameplayStarted")
-UIAction.RegisterEventSystemListener(DynamicBandages, "System", "OnSetFaderState", "OnSetFaderState")
+UIAction.RegisterEventSystemListener(Leechcraft, "System", "OnGameplayStarted", "OnGameplayStarted")
+UIAction.RegisterEventSystemListener(Leechcraft, "System", "OnSetFaderState", "OnSetFaderState")

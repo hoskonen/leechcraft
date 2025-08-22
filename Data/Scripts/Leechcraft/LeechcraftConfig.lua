@@ -1,11 +1,11 @@
 -- ================================
--- File: Scripts/DynamicBandages/DynamicBandagesConfig.lua
+-- File: Scripts/Leechcraft/LeechcraftConfig.lua
 -- ================================
 
 -- Users can copy this file into their mod and tweak values.
--- If absent, defaults in DynamicBandages.lua are used.
+-- If absent, defaults in Leechcraft.lua are used.
 
-DynamicBandages_Config = {
+Leechcraft_Config = {
     debugLogs       = true,
     enableSleepHook = true,
     enableBuffs     = true,

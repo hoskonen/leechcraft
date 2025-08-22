@@ -2,7 +2,7 @@
 <storm>
 	<tasks>
 		<task name="roles" class="roles">
-			<source path="dynamicbandages.xml" />
+			<source path="leechcraft.xml" />
 		</task>
 	</tasks>
 </storm>

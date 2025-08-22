@@ -4,7 +4,7 @@
 	<customSelectors>
 	</customSelectors>
 	<rules>
-		<rule name="init_dynamicbandages">
+		<rule name="init_leechcraft">
 			<selectors>
 				<hasName name="player_henry"/>
 			</selectors>
