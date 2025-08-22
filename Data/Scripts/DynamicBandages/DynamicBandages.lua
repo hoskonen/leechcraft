@@ -1,22 +1,21 @@
 DynamicBandages = DynamicBandages or {}
 
---Minimal config
+-- Minimal config
 DynamicBandages.config = DynamicBandages.config or {
     debugLogs       = true,
     enableSleepHook = true,
     enableBuffs     = true,
     scholarKey      = "scholarship", -- single source of truth
-    applyOnStart    = true,          -- ⬅ run once at game start
-    startRetries    = 3,             -- ⬅ try a few times (soul might not be ready)
-    startRetryMs    = 500,           -- ⬅ delay between retries
+    applyOnStart    = true,        -- run once at game start
+    startRetries    = 3,           -- try a few times (soul might not be ready)
+    startRetryMs    = 500,         -- delay between retries
 }
 
--- Scholarship → FAE mapping (levels, name, UUID)
+-- Scholarship → FAE mapping (levels, name, UUID). Tier 1 acts as the baseline.
 local LEECH = {
-    baseline = { name = "perk_leechcraft_reset", id = "8f2f3a2d-0c3c-4c7a-9e62-7e3e1db9c1c5" }, -- reset fae*0.3/0.4
     tiers = {
-        { min = 1,  max = 5,  name = "scholarship_bandaging_1", id = "a8a0e967-184e-4185-b26d-63fc766e55da" },
-        { min = 6,  max = 11, name = "scholarship_bandaging_2", id = "6837c164-2e18-43aa-9051-6dc582abf77a" },
+        { min = 1, max = 5, name = "scholarship_bandaging_1", id = "a8a0e967-184e-4185-b26d-63fc766e55da" },
+        { min = 6, max = 11, name = "scholarship_bandaging_2", id = "6837c164-2e18-43aa-9051-6dc582abf77a" },
         { min = 12, max = 17, name = "scholarship_bandaging_3", id = "9605692c-a4b1-4089-a8fb-8f46120e1534" },
         { min = 18, max = 23, name = "scholarship_bandaging_4", id = "f42e79ba-ab3f-40ac-89f6-4db9f8a48740" },
         { min = 24, max = 30, name = "scholarship_bandaging_5", id = "196fe75b-4a59-4f54-a243-535cc0e14505" },
@@ -33,7 +32,6 @@ local function ApplyOnceWithRetry(triesLeft)
     end)
 end
 
-
 local function Log(msg)
     if DynamicBandages.config.debugLogs then
         System.LogAlways("[LeechCraft] " .. tostring(msg))
@@ -41,10 +39,8 @@ local function Log(msg)
 end
 
 local function getPlayerSafe()
-    -- Preferred: by name (works across builds)
     local p = System.GetEntityByName and (System.GetEntityByName("Henry") or System.GetEntityByName("dude")) or nil
     if p then return p end
-    -- Fallback: by class (guarded)
     if System.GetEntityByClass then
         local ok, res = pcall(System.GetEntityByClass, "Player")
         if ok then return res end
@@ -68,9 +64,8 @@ local function pickTierEntry(s)
     return LEECH.tiers[#LEECH.tiers]
 end
 
--- Remove baseline + all tiers (idempotent, UUID-only)
+-- Remove all tiers (idempotent, UUID-only)
 local function ClearBuffs(soul)
-    pcall(function() soul:RemoveBuff(LEECH.baseline.id) end)
     for _, t in ipairs(LEECH.tiers) do
         pcall(function() soul:RemoveBuff(t.id) end)
     end
@@ -83,8 +78,8 @@ local function AddById(soul, id, label)
     return ok
 end
 
-
--- usage: lua DynamicBandages.DebugSetTier(2)
+-- Debug: force a tier regardless of Scholarship
+-- usage in console: lua DynamicBandages.DebugSetTier(2)
 function DynamicBandages.DebugSetTier(i)
     local p = System.GetEntityByName("Henry") or System.GetEntityByName("dude")
     local s = p and p.soul
@@ -94,10 +89,9 @@ function DynamicBandages.DebugSetTier(i)
     ClearBuffs(s)
     local idx = math.max(1, math.min(#LEECH.tiers, tonumber(i) or 1))
     AddById(s, LEECH.tiers[idx].id, LEECH.tiers[idx].name)
-    System.LogAlways("[Leechcraft] DebugSetTier → " .. LEECH.tiers[idx].name)
+    System.LogAlways("[Leechcraft] DebugSetTier → " .. LEEECH.tiers[idx].name)
 end
 
--- call with a stage label so logs are clear
 -- unified apply (boot/wake)
 function DynamicBandages.Apply(stage)
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — enter")
@@ -114,57 +108,18 @@ function DynamicBandages.Apply(stage)
 
         if not DynamicBandages.config.enableBuffs then return end
 
-        -- pick tier entry (levels + name + UUID)
         local entry = pickTierEntry(s or 1)
         System.LogAlways(("[LeechCraft] enableBuffs=true, chosen=%s (lvl %d–%d)")
             :format(entry.name, entry.min, entry.max))
 
-        ClearBuffs(soul)                                 -- remove baseline + all tiers by UUID
-        if not AddById(soul, entry.id, entry.name) then  -- add chosen tier by UUID
-            AddById(soul, LEECH.baseline.id, "baseline") -- fallback so we never leave player “empty”
-        end
+        ClearBuffs(soul) -- remove all tiers by UUID
+        AddById(soul, entry.id, entry.name)
     end)
     if not ok then System.LogAlways("[LeechCraft] Apply error: " .. tostring(err)) end
     System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — exit")
 end
 
---Wake handler (no buffs yet; just log scholarship) ---
-function DynamicBandages.ApplyOnWake()
-    System.LogAlways("[LeechCraft] ApplyOnWake() — enter")
-    local ok, err = pcall(function()
-        local player = getPlayerSafe()
-        if not player or not player.soul then
-            System.LogAlways("[LeechCraft] ApplyOnWake: no player/soul")
-            return
-        end
-        local soul = player.soul
-
-        -- 1) log Scholarship using the single configured key
-        local s = GetScholarship(player)
-        System.LogAlways(string.format("[LeechCraft] Wake: Scholarship=%s (key=%s)",
-            tostring(s), tostring(DynamicBandages.config.scholarKey)))
-
-        -- 2) optionally apply tier (kept behind flag)
-        if DynamicBandages.config.enableBuffs then
-            local entry = pickTierEntry(s or 1) -- has .name and .id
-            System.LogAlways(("[Leechcraft] enableBuffs=true, chosen=%s (lvl %d–%d)")
-                :format(entry.name, entry.min, entry.max))
-
-            ClearBuffs(soul) -- <-- correct function name
-
-            if not AddById(soul, entry.id, entry.name) then
-                -- fallback so player is never left "empty"
-                AddById(soul, LEECH.baseline.id, "baseline")
-            end
-        end
-    end)
-    if not ok then
-        System.LogAlways("[LeechCraft] ApplyOnWake() error: " .. tostring(err))
-    end
-    System.LogAlways("[LeechCraft] ApplyOnWake() — exit")
-end
-
---SkipTime / sleep UI bridge (clean: just call ApplyOnWake on hide) ---
+-- Sleep UI bridge → apply on wake
 function DynamicBandages:onSkipTimeEvent(_, _, eventName)
     if not DynamicBandages.config.enableSleepHook then return end
     if eventName == "OnHide" then
@@ -172,7 +127,7 @@ function DynamicBandages:onSkipTimeEvent(_, _, eventName)
     end
 end
 
---Init (register SkipTime listener once) ---
+-- Init (register SkipTime listener once)
 function DynamicBandages.Initialize(fullInit)
     if DynamicBandages._skipListenerRegistered then return end
     if UIAction and UIAction.RegisterElementListener then
@@ -184,7 +139,7 @@ function DynamicBandages.Initialize(fullInit)
     end
 end
 
---System listeners (match your Provision Purge pattern) ---
+-- System listeners
 function DynamicBandages.OnGameplayStarted()
     System.LogAlways("[LeechCraft] OnGameplayStarted")
     DynamicBandages.Initialize(true)
@@ -194,7 +149,6 @@ function DynamicBandages.OnGameplayStarted()
 end
 
 function DynamicBandages.OnSetFaderState()
-    -- keep SkipTime listener alive if UI reloads
     DynamicBandages.Initialize(false)
 end
 

@@ -2,18 +2,18 @@
 <database xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="barbora" xsi:noNamespaceSchemaLocation="../database.xsd">
 	<buffs version="1">
 		<!-- Scholarship: Medicine / Bandage Buff - Level 1 - Scholarship level 1-5 -->
-		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="a8a0e967-184e-4185-b26d-63fc766e55da" buff_lifetime_id="1" buff_name="scholarship_bandaging_1" buff_params="fae*1.5" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_1_desc" buff_ui_name="buff_scholarship_bandaging_1" />
+		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="a8a0e967-184e-4185-b26d-63fc766e55da" buff_lifetime_id="1" buff_name="scholarship_bandaging_1" buff_params="fae*0.3" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_1_desc" buff_ui_name="buff_scholarship_bandaging_1" buff_ui_visibility_id="2" />
 
         <!-- Scholarship: Medicine / Bandage Buff - Level 2 - Scholarship level 6-11 -->
-		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="6837c164-2e18-43aa-9051-6dc582abf77a" buff_lifetime_id="1" buff_name="scholarship_bandaging_2" buff_params="fae*0.65" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_2_desc" buff_ui_name="buff_scholarship_bandaging_2" />
+		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="6837c164-2e18-43aa-9051-6dc582abf77a" buff_lifetime_id="1" buff_name="scholarship_bandaging_2" buff_params="fae*0.5" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_2_desc" buff_ui_name="buff_scholarship_bandaging_2" buff_ui_visibility_id="2" />
 
         <!-- Scholarship: Medicine / Bandage Buff - Level 3 - Scholarship level 12-17 -->
-		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="9605692c-a4b1-4089-a8fb-8f46120e1534" buff_lifetime_id="1" buff_name="scholarship_bandaging_3" buff_params="fae*0.80" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_3_desc" buff_ui_name="buff_scholarship_bandaging_3" />
+		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="9605692c-a4b1-4089-a8fb-8f46120e1534" buff_lifetime_id="1" buff_name="scholarship_bandaging_3" buff_params="fae*0.70" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_3_desc" buff_ui_name="buff_scholarship_bandaging_3" buff_ui_visibility_id="2" />
 
         <!-- Scholarship: Medicine / Bandage Buff - Level 4 - Scholarship level 18-23 -->
-		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="f42e79ba-ab3f-40ac-89f6-4db9f8a48740" buff_lifetime_id="1" buff_name="scholarship_bandaging_4" buff_params="fae*0.95" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_4_desc" buff_ui_name="buff_scholarship_bandaging_4" />
+		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="f42e79ba-ab3f-40ac-89f6-4db9f8a48740" buff_lifetime_id="1" buff_name="scholarship_bandaging_4" buff_params="fae*0.95" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_4_desc" buff_ui_name="buff_scholarship_bandaging_4" buff_ui_visibility_id="2" />
 
         <!-- Scholarship: Medicine / Bandage Buff - Level 5 - Scholarship level 24-30 -->
-		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="196fe75b-4a59-4f54-a243-535cc0e14505" buff_lifetime_id="1" buff_name="scholarship_bandaging_5" buff_params="fae*1.1" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_5_desc" buff_ui_name="buff_scholarship_bandaging_5" />
+		<buff buff_class_id="4" buff_exclusivity_id="2" buff_id="196fe75b-4a59-4f54-a243-535cc0e14505" buff_lifetime_id="1" buff_name="scholarship_bandaging_5" buff_params="fae*1.0" buff_ui_type_id="1" duration="-1" icon_id="replaceme" implementation="Cpp:Constant" is_persistent="true" buff_desc="buff_scholarship_bandaging_5_desc" buff_ui_name="buff_scholarship_bandaging_5" buff_ui_visibility_id="2" />
 	</buffs>
 </database>
