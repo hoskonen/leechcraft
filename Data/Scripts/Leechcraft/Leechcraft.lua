@@ -2,13 +2,13 @@ Leechcraft = Leechcraft or {}
 
 -- Minimal config
 Leechcraft.config = Leechcraft.config or {
-    debugLogs       = true,
+    debugLogs       = false,
     enableSleepHook = true,
     enableBuffs     = true,
-    scholarKey      = "scholarship", -- single source of truth
     applyOnStart    = true,          -- run once at game start
     startRetries    = 3,             -- try a few times (soul might not be ready)
     startRetryMs    = 500,           -- delay between retries
+    scholarKey      = "scholarship", -- single source of truth
 }
 
 -- Load user override config (safe)
@@ -18,9 +18,11 @@ do
     end)
     if ok and Leechcraft_Config then
         for k, v in pairs(Leechcraft_Config) do Leechcraft.config[k] = v end
-        System.LogAlways("[LeechCraft] Loaded config override from LeechcraftConfig.lua")
+        Log("Loaded config override from LeechcraftConfig.lua")
+    elseif not ok then
+        Warn("Config override load failed: " .. tostring(err))
     else
-        if not ok then System.LogAlways("[LeechCraft] Config override load failed: " .. tostring(err)) end
+        Log("No Leechcraft_Config table found; using defaults")
     end
 end
 
@@ -47,9 +49,15 @@ end
 
 local function Log(msg)
     if Leechcraft.config.debugLogs then
-        System.LogAlways("[LeechCraft] " .. tostring(msg))
+        System.LogAlways("[Leechcraft] " .. tostring(msg))
     end
 end
+
+local function Warn(msg)
+    System.LogAlways("[Leechcraft] " .. tostring(msg))
+end
+
+Leechcraft._skipListenerRegistered = Leechcraft._skipListenerRegistered or false
 
 local function getPlayerSafe()
     local p = System.GetEntityByName and (System.GetEntityByName("Henry") or System.GetEntityByName("dude")) or nil
@@ -77,43 +85,27 @@ local function pickTierEntry(s)
     return LEECH.tiers[#LEECH.tiers]
 end
 
--- Remove all tiers (idempotent, UUID-only)
--- local function ClearBuffs(soul)
---     for _, t in ipairs(LEECH.tiers) do
---         pcall(function() soul:RemoveBuff(t.id) end)
---     end
--- end
-
--- Wipe all Leechcraft-tier buffs in one go by database GUID
--- (GUID == <database name="barbora"> in your XML)
--- Strong cleaner: try GUID, then nuke by UUID, then by name (derived from LEECH.tiers)
 local function ClearBuffs(soul)
     if not soul then return end
-
-    -- 1) Try DB-GUID wipe (if engine expects another GUID internally, this may no-op)
+    -- best-effort DB wipe (may no-op on some builds)
     pcall(function() soul:RemoveAllBuffsByGuid("barbora") end)
-
-    -- 2) Remove current tiers by UUID (authoritative)
+    -- always remove our current tier UUIDs
     for _, t in ipairs(LEECH.tiers) do
         pcall(function() soul:RemoveBuff(t.id) end)
     end
-
-    -- 3) Belt & suspenders: remove by NAME repeatedly (handles legacy buffs with unknown UUIDs)
-    --    (no extra table: we reuse t.name)
-    for _, t in ipairs(LEECH.tiers) do
-        for i = 1, 6 do
-            pcall(function() soul:RemoveBuff(t.name) end)
-        end
-    end
 end
-
 
 local function AddById(soul, id, label)
     local ok, err = pcall(function() return soul:AddBuff(id) end)
-    System.LogAlways(ok and ("[Leechcraft] Add: " .. (label or id))
-        or ("[Leechcraft] Add FAILED: " .. tostring(err)))
+    if ok then
+        Log("Add: " .. (label or id))
+    else
+        Warn("Add FAILED: " .. tostring(err))
+    end
     return ok
 end
+
+Leechcraft._bootLogged = Leechcraft._bootLogged or false
 
 -- Debug: force a tier regardless of Scholarship
 -- usage in console: lua Leechcraft.DebugSetTier(2)
@@ -121,41 +113,41 @@ function Leechcraft.DebugSetTier(i)
     local p = System.GetEntityByName("Henry") or System.GetEntityByName("dude")
     local s = p and p.soul
     if not s then
-        System.LogAlways("[Leechcraft] DebugSetTier: no soul"); return
+        Warn("DebugSetTier: no soul"); return
     end
+
     ClearBuffs(s)
     local idx = math.max(1, math.min(#LEECH.tiers, tonumber(i) or 1))
     AddById(s, LEECH.tiers[idx].id, LEECH.tiers[idx].name)
-    System.LogAlways("[Leechcraft] DebugSetTier → " .. LEECH.tiers[idx].name)
+    Warn("DebugSetTier → " .. LEECH.tiers[idx].name)
 end
 
 -- unified apply (boot/wake)
 function Leechcraft.Apply(stage)
-    System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — enter")
+    Log("Apply(" .. (stage or "?") .. ") — enter")
     local applied = false
     local ok, err = pcall(function()
         local player = getPlayerSafe()
         local soul   = player and player.soul
         if not soul then
-            System.LogAlways("[LeechCraft] no soul")
-            return -- applied=false
+            Log("no soul")
+            return
         end
 
         local s = GetScholarship(player)
-        System.LogAlways(string.format("[LeechCraft] %s: Scholarship=%s (key=%s)",
-            stage or "?", tostring(s), tostring(Leechcraft.config.scholarKey)))
+        Log(string.format("%s: Scholarship=%s (key=%s)", stage or "?", tostring(s),
+            tostring(Leechcraft.config.scholarKey)))
 
         if not Leechcraft.config.enableBuffs then return end
 
         local entry = pickTierEntry(s or 1)
-        System.LogAlways(("[LeechCraft] enableBuffs=true, chosen=%s (lvl %d–%d)")
-            :format(entry.name, entry.min, entry.max))
+        Log(("enableBuffs=true, chosen=%s (lvl %d–%d)"):format(entry.name, entry.min, entry.max))
 
         ClearBuffs(soul)
-        applied = AddById(soul, entry.id, entry.name) -- returns true/false
+        applied = AddById(soul, entry.id, entry.name)
     end)
-    if not ok then System.LogAlways("[LeechCraft] Apply error: " .. tostring(err)) end
-    System.LogAlways("[LeechCraft] Apply(" .. (stage or "?") .. ") — exit")
+    if not ok then Warn("Apply error: " .. tostring(err)) end
+    Log("Apply(" .. (stage or "?") .. ") — exit")
     return applied
 end
 
@@ -181,10 +173,17 @@ end
 
 -- System listeners
 function Leechcraft.OnGameplayStarted()
-    System.LogAlways("[LeechCraft] OnGameplayStarted")
-    Leechcraft.Initialize(true)
+    Leechcraft.Initialize(true) -- registers SkipTime listener
+
+    if not Leechcraft._bootLogged then
+        System.LogAlways("[Leechcraft] Initialized.")
+        Leechcraft._bootLogged = true
+    end
+
     if Leechcraft.config.applyOnStart then
         ApplyOnceWithRetry()
+        -- optional extra safety:
+        -- Script.SetTimer(2000, function() Leechcraft.Apply("post-boot") end)
     end
 end
 

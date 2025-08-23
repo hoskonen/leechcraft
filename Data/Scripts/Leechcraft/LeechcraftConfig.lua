@@ -6,11 +6,11 @@
 -- If absent, defaults in Leechcraft.lua are used.
 
 Leechcraft_Config = {
-    debugLogs       = true,
+    debugLogs       = false,
     enableSleepHook = true,
     enableBuffs     = true,
-    scholarKey      = "scholarship",
     applyOnStart    = true,
     startRetries    = 3,
     startRetryMs    = 500,
+    scholarKey      = "scholarship",
 }
