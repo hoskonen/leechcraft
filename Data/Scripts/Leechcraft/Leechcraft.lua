@@ -93,11 +93,16 @@ end
 -- ---------- Buff ops ----------
 local function ClearBuffs(soul)
     if not soul then return end
-    pcall(function() soul:RemoveAllBuffsByGuid("barbora") end) -- best-effort DB wipe
+    -- Nuke all instances of each tier by GUID (handles save-stacked copies, retries, etc.)
     for _, t in ipairs(LEECH.tiers) do
-        pcall(function() soul:RemoveBuff(t.id) end)            -- current UUIDs
+        pcall(function() soul:RemoveAllBuffsByGuid(t.id) end)
+    end
+    -- Optional belt: remove by name as well (helps if a legacy build used same names but different IDs)
+    for _, t in ipairs(LEECH.tiers) do
+        pcall(function() soul:RemoveBuff(t.name) end)
     end
 end
+
 
 local function AddById(soul, id, label)
     local ok, err = pcall(function() return soul:AddBuff(id) end)
