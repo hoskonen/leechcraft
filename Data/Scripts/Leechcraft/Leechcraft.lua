@@ -11,7 +11,22 @@ Leechcraft.config = Leechcraft.config or {
     scholarKey      = "scholarship", -- single source of truth
 }
 
--- Load user override config (safe)
+-- ---------- Logging helpers MUST come before any use ----------
+local function Log(msg)
+    if Leechcraft.config.debugLogs then
+        System.LogAlways("[Leechcraft] " .. tostring(msg))
+    end
+end
+
+local function Warn(msg)
+    System.LogAlways("[Leechcraft] " .. tostring(msg))
+end
+
+-- Session flags
+Leechcraft._skipListenerRegistered = Leechcraft._skipListenerRegistered or false
+Leechcraft._bootLogged             = Leechcraft._bootLogged or false
+
+-- ---------- Config override (safe) ----------
 do
     local ok, err = pcall(function()
         Script.ReloadScript("Scripts/Leechcraft/LeechcraftConfig.lua")
@@ -26,7 +41,7 @@ do
     end
 end
 
--- Scholarship → FAE mapping (levels, name, UUID). Tier 1 acts as the baseline.
+-- ---------- Scholarship → FAE mapping ----------
 local LEECH = {
     tiers = {
         { min = 1,  max = 5,  name = "scholarship_bandaging_1", id = "a8a0e967-184e-4185-b26d-63fc766e55da" },
@@ -37,6 +52,7 @@ local LEECH = {
     }
 }
 
+-- ---------- Retry wrapper ----------
 local function ApplyOnceWithRetry(triesLeft)
     triesLeft = triesLeft or (Leechcraft.config.startRetries or 0)
     local ok, applied = pcall(function() return Leechcraft.Apply("boot") end)
@@ -47,18 +63,7 @@ local function ApplyOnceWithRetry(triesLeft)
     end)
 end
 
-local function Log(msg)
-    if Leechcraft.config.debugLogs then
-        System.LogAlways("[Leechcraft] " .. tostring(msg))
-    end
-end
-
-local function Warn(msg)
-    System.LogAlways("[Leechcraft] " .. tostring(msg))
-end
-
-Leechcraft._skipListenerRegistered = Leechcraft._skipListenerRegistered or false
-
+-- ---------- Utils ----------
 local function getPlayerSafe()
     local p = System.GetEntityByName and (System.GetEntityByName("Henry") or System.GetEntityByName("dude")) or nil
     if p then return p end
@@ -85,44 +90,35 @@ local function pickTierEntry(s)
     return LEECH.tiers[#LEECH.tiers]
 end
 
+-- ---------- Buff ops ----------
 local function ClearBuffs(soul)
     if not soul then return end
-    -- best-effort DB wipe (may no-op on some builds)
-    pcall(function() soul:RemoveAllBuffsByGuid("barbora") end)
-    -- always remove our current tier UUIDs
+    pcall(function() soul:RemoveAllBuffsByGuid("barbora") end) -- best-effort DB wipe
     for _, t in ipairs(LEECH.tiers) do
-        pcall(function() soul:RemoveBuff(t.id) end)
+        pcall(function() soul:RemoveBuff(t.id) end)            -- current UUIDs
     end
 end
 
 local function AddById(soul, id, label)
     local ok, err = pcall(function() return soul:AddBuff(id) end)
-    if ok then
-        Log("Add: " .. (label or id))
-    else
-        Warn("Add FAILED: " .. tostring(err))
-    end
+    if ok then Log("Add: " .. (label or id)) else Warn("Add FAILED: " .. tostring(err)) end
     return ok
 end
 
-Leechcraft._bootLogged = Leechcraft._bootLogged or false
-
--- Debug: force a tier regardless of Scholarship
--- usage in console: lua Leechcraft.DebugSetTier(2)
+-- ---------- Debug helper ----------
 function Leechcraft.DebugSetTier(i)
     local p = System.GetEntityByName("Henry") or System.GetEntityByName("dude")
     local s = p and p.soul
     if not s then
         Warn("DebugSetTier: no soul"); return
     end
-
     ClearBuffs(s)
     local idx = math.max(1, math.min(#LEECH.tiers, tonumber(i) or 1))
     AddById(s, LEECH.tiers[idx].id, LEECH.tiers[idx].name)
     Warn("DebugSetTier → " .. LEECH.tiers[idx].name)
 end
 
--- unified apply (boot/wake)
+-- ---------- Apply (boot/wake) ----------
 function Leechcraft.Apply(stage)
     Log("Apply(" .. (stage or "?") .. ") — enter")
     local applied = false
@@ -130,8 +126,7 @@ function Leechcraft.Apply(stage)
         local player = getPlayerSafe()
         local soul   = player and player.soul
         if not soul then
-            Log("no soul")
-            return
+            Log("no soul"); return
         end
 
         local s = GetScholarship(player)
@@ -151,7 +146,7 @@ function Leechcraft.Apply(stage)
     return applied
 end
 
--- Sleep UI bridge → apply on wake
+-- ---------- Sleep UI bridge ----------
 function Leechcraft:onSkipTimeEvent(_, _, eventName)
     if not Leechcraft.config.enableSleepHook then return end
     if eventName == "OnHide" then
@@ -159,7 +154,7 @@ function Leechcraft:onSkipTimeEvent(_, _, eventName)
     end
 end
 
--- Init (register SkipTime listener once)
+-- ---------- Init / System listeners ----------
 function Leechcraft.Initialize(fullInit)
     if Leechcraft._skipListenerRegistered then return end
     if UIAction and UIAction.RegisterElementListener then
@@ -171,19 +166,15 @@ function Leechcraft.Initialize(fullInit)
     end
 end
 
--- System listeners
 function Leechcraft.OnGameplayStarted()
-    Leechcraft.Initialize(true) -- registers SkipTime listener
-
+    Leechcraft.Initialize(true)                       -- register SkipTime
     if not Leechcraft._bootLogged then
-        System.LogAlways("[Leechcraft] Initialized.")
+        System.LogAlways("[Leechcraft] Initialized.") -- one tidy line
         Leechcraft._bootLogged = true
     end
-
     if Leechcraft.config.applyOnStart then
         ApplyOnceWithRetry()
-        -- optional extra safety:
-        -- Script.SetTimer(2000, function() Leechcraft.Apply("post-boot") end)
+        -- Script.SetTimer(2000, function() Leechcraft.Apply("post-boot") end) -- optional
     end
 end
 
